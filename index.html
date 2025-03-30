@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tính Thuế Thu Nhập Cá Nhân</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #e6f0fa 0%, #f0f2f5 100%);
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            max-width: 1000px;
+        }
+        h1 {
+            color: #1a73e8;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #1a73e8;
+            padding-bottom: 8px;
+            font-size: 1.4rem;
+        }
+        .income-entry, .dependent-entry {
+            margin-bottom: 20px;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            border: none;
+            transition: background-color 0.2s;
+            height: 37px;
+            color: white;
+        }
+        .btn-delete:hover {
+            background-color: #b02a37;
+        }
+        .result {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #e9ecef;
+        }
+        .result span {
+            color: #1a73e8;
+            font-weight: bold;
+        }
+        .tax-form {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .tax-form th, .tax-form td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        .tax-form th {
+            background-color: #f1f3f5;
+            font-weight: bold;
+        }
+        .modal-body {
+            background-color: #fff;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tính Thuế Thu Nhập Cá Nhân</h1>
+
+        <div class="mb-4">
+            <h2>Thông tin cá nhân</h2>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Họ và tên</label>
+                    <input type="text" class="form-control" id="full-name">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Mã số thuế cá nhân</label>
+                    <input type="text" class="form-control" id="tax-code">
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <h2>Thông tin thu nhập từ các công ty</h2>
+            <div id="income-container">
+                <div class="income-entry row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Tên công ty</label>
+                        <input type="text" class="form-control company-name">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Thu nhập chịu thuế (VND)</label>
+                        <input type="text" class="form-control taxable-income">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Thuế đã khấu trừ (VND)</label>
+                        <input type="text" class="form-control tax-paid">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Bảo hiểm bắt buộc (VND)</label>
+                        <input type="text" class="form-control insurance">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-delete btn-sm w-100" onclick="deleteEntry(this, 'income-container')">Xóa</button>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary mt-2" onclick="addIncome()">Thêm nguồn thu nhập</button>
+        </div>
+
+        <div class="mb-4">
+            <h2>Người phụ thuộc</h2>
+            <div id="dependent-container">
+                <!-- Trống ban đầu -->
+            </div>
+            <button class="btn btn-primary mt-2" onclick="addDependent()">Thêm người phụ thuộc</button>
+        </div>
+
+        <div class="mb-4">
+            <h2>Kết quả</h2>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" onclick="calculateTax()">Tính thuế</button>
+                <button class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#taxFormModal" onclick="generateTaxForm()">Xem tờ khai</button>
+                <button class="btn btn-warning text-white" data-bs-toggle="modal" data-bs-target="#taxTableModal" onclick="generateTaxTable()">Bảng tính</button>
+            </div>
+            <div class="result mt-3">
+                <p>Tổng thu nhập chịu thuế: <span id="total-taxable">0</span> VND</p>
+                <p>Tổng giảm trừ: <span id="total-deduction">0</span> VND</p>
+                <p>Thu nhập tính thuế: <span id="taxable-income">0</span> VND</p>
+                <p>Thuế TNCN phải nộp: <span id="tax-due">0</span> VND</p>
+                <p>Tổng thuế đã khấu trừ (đã nộp): <span id="total-tax-paid">0</span> VND</p>
+                <p>Số tiền cần nộp thêm / hoàn lại: <span id="tax-difference">0</span> VND</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tờ khai -->
+    <div class="modal fade" id="taxFormModal" tabindex="-1" aria-labelledby="taxFormModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="taxFormModalLabel">Tờ khai quyết toán thuế TNCN (Mẫu 05/QTT-TNCN)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body tax-form" id="tax-form-content">
+                    <!-- Tờ khai sẽ được generate tại đây -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="printTaxForm()">In tờ khai</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Bảng tính -->
+    <div class="modal fade" id="taxTableModal" tabindex="-1" aria-labelledby="taxTableModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="taxTableModalLabel">Bảng tính thuế TNCN</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body tax-table" id="tax-table-content">
+                    <!-- Bảng tính sẽ được generate tại đây -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+    <script>
+        let taxResult = {};
+
+        function formatNumber(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value) {
+                value = Number(value).toLocaleString('vi-VN');
+            }
+            input.value = value;
+        }
+
+        document.addEventListener('input', (e) => {
+            if (e.target.classList.contains('taxable-income') || 
+                e.target.classList.contains('insurance') || 
+                e.target.classList.contains('tax-paid')) {
+                formatNumber(e.target);
+            }
+        });
+
+        function addIncome() {
+            const container = document.getElementById('income-container');
+            const entry = document.createElement('div');
+            entry.className = 'income-entry row g-3 align-items-end';
+            entry.innerHTML = `
+                <div class="col-md-4">
+                    <input type="text" class="form-control company-name">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control taxable-income">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control tax-paid">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control insurance">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-delete btn-sm w-100" onclick="deleteEntry(this, 'income-container')">Xóa</button>
+                </div>
+            `;
+            container.appendChild(entry);
+        }
+
+        function addDependent() {
+            const container = document.getElementById('dependent-container');
+            const dependentCount = container.children.length + 1;
+            const entry = document.createElement('div');
+            entry.className = 'dependent-entry row g-3 align-items-end';
+            entry.innerHTML = `
+                <div class="col-md-5">
+                    <label class="form-label">Số người phụ thuộc</label>
+                    <input type="number" class="form-control dependent-count" value="${dependentCount}" disabled>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Tháng bắt đầu (1-12, để trống nếu cả năm)</label>
+                    <input type="number" class="form-control dependent-start" min="1" max="12">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-delete btn-sm w-100" onclick="deleteEntry(this, 'dependent-container')">Xóa</button>
+                </div>
+            `;
+            container.appendChild(entry);
+        }
+
+        function deleteEntry(button, containerId) {
+            const entry = button.parentElement.parentElement;
+            const container = document.getElementById(containerId);
+            entry.remove();
+            if (container.children.length === 0 && containerId === 'income-container') {
+                addIncome();
+            }
+            if (containerId === 'dependent-container') {
+                const dependentCounts = container.getElementsByClassName('dependent-count');
+                for (let i = 0; i < dependentCounts.length; i++) {
+                    dependentCounts[i].value = i + 1;
+                }
+            }
+        }
+
+        function calculateTax() {
+            const taxableIncomes = document.getElementsByClassName('taxable-income');
+            const insurances = document.getElementsByClassName('insurance');
+            const taxPaids = document.getElementsByClassName('tax-paid');
+            let totalTaxableIncome = 0;
+            let totalInsurance = 0;
+            let totalTaxPaid = 0;
+
+            for (let i = 0; i < taxableIncomes.length; i++) {
+                totalTaxableIncome += Number(taxableIncomes[i].value.replace(/\D/g, '')) || 0;
+                totalInsurance += Number(insurances[i].value.replace(/\D/g, '')) || 0;
+                totalTaxPaid += Number(taxPaids[i].value.replace(/\D/g, '')) || 0;
+            }
+
+            const selfDeduction = 11_000_000 * 12;
+            const dependentDeduction = 4_400_000;
+            const dependentCounts = document.getElementsByClassName('dependent-count');
+            const dependentStarts = document.getElementsByClassName('dependent-start');
+            let totalDependentDeduction = 0;
+
+            for (let i = 0; i < dependentCounts.length; i++) {
+                const startMonth = Number(dependentStarts[i].value) || 1;
+                const months = (startMonth === 1 || startMonth > 12) ? 12 : 13 - startMonth;
+                totalDependentDeduction += dependentDeduction * months;
+            }
+
+            const totalDeduction = selfDeduction + totalDependentDeduction + totalInsurance;
+            const taxableIncome = totalTaxableIncome - totalDeduction;
+
+            let taxDue = 0;
+            if (taxableIncome > 0) {
+                if (taxableIncome <= 60_000_000) taxDue = taxableIncome * 0.05;
+                else if (taxableIncome <= 120_000_000) taxDue = 3_000_000 + (taxableIncome - 60_000_000) * 0.10;
+                else if (taxableIncome <= 216_000_000) taxDue = 9_000_000 + (taxableIncome - 120_000_000) * 0.15;
+                else if (taxableIncome <= 384_000_000) taxDue = 23_400_000 + (taxableIncome - 216_000_000) * 0.20;
+                else if (taxableIncome <= 624_000_000) taxDue = 57_000_000 + (taxableIncome - 384_000_000) * 0.25;
+                else taxDue = 117_000_000 + (taxableIncome - 624_000_000) * 0.35;
+            }
+
+            const taxDifference = Math.round(taxDue) - totalTaxPaid;
+
+            taxResult = {
+                totalTaxableIncome,
+                totalInsurance,
+                totalTaxPaid,
+                selfDeduction,
+                totalDependentDeduction,
+                totalDeduction,
+                taxableIncome,
+                taxDue: Math.round(taxDue),
+                taxDifference
+            };
+
+            document.getElementById('total-taxable').textContent = totalTaxableIncome.toLocaleString('vi-VN');
+            document.getElementById('total-deduction').textContent = totalDeduction.toLocaleString('vi-VN');
+            document.getElementById('taxable-income').textContent = taxableIncome > 0 ? taxableIncome.toLocaleString('vi-VN') : 0;
+            document.getElementById('tax-due').textContent = Math.round(taxDue).toLocaleString('vi-VN');
+            document.getElementById('total-tax-paid').textContent = totalTaxPaid.toLocaleString('vi-VN');
+            const taxDifferenceElement = document.getElementById('tax-difference');
+            if (taxDifference >= 0) {
+                taxDifferenceElement.textContent = `+${taxDifference.toLocaleString('vi-VN')} (Cần nộp thêm)`;
+                taxDifferenceElement.style.color = 'red';
+            } else {
+                taxDifferenceElement.textContent = `${taxDifference.toLocaleString('vi-VN')} (Được hoàn)`;
+                taxDifferenceElement.style.color = 'green';
+            }
+        }
+
+        function generateTaxForm() {
+            const fullName = document.getElementById('full-name').value || 'Chưa nhập';
+            const taxCode = document.getElementById('tax-code').value || 'Chưa nhập';
+            const companyNames = Array.from(document.getElementsByClassName('company-name')).map(input => input.value || 'Chưa nhập');
+            const currentYear = new Date().getFullYear();
+            const taxYear = currentYear - 1;
+
+            const formContent = `
+                <div class="text-center">
+                    <p><strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong></p>
+                    <p>Độc lập - Tự do - Hạnh phúc</p>
+                </div>
+                <h5 class="text-center mt-3">TỜ KHAI QUYẾT TOÁN THUẾ TNCN (Mẫu 05/QTT-TNCN)</h5>
+                <p>Kỳ tính thuế: Năm ${taxYear}</p>
+                <p>[01] Họ và tên: ${fullName}</p>
+                <p>[02] Mã số thuế: ${taxCode}</p>
+                <p>[03] Cá nhân cư trú: X</p>
+                <h6>THÔNG TIN THU NHẬP VÀ THUẾ ĐÃ KHẤU TRỪ</h6>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Tên tổ chức trả thu nhập</th>
+                            <th>Tổng thu nhập chịu thuế (VND)</th>
+                            <th>Thuế TNCN đã khấu trừ (VND)</th>
+                            <th>Bảo hiểm bắt buộc (VND)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Array.from(document.getElementsByClassName('income-entry')).map((entry, index) => `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${companyNames[index]}</td>
+                                <td>${(Number(entry.querySelector('.taxable-income').value.replace(/\D/g, '')) || 0).toLocaleString('vi-VN')}</td>
+                                <td>${(Number(entry.querySelector('.tax-paid').value.replace(/\D/g, '')) || 0).toLocaleString('vi-VN')}</td>
+                                <td>${(Number(entry.querySelector('.insurance').value.replace(/\D/g, '')) || 0).toLocaleString('vi-VN')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <p>[04] Tổng thu nhập chịu thuế: ${taxResult.totalTaxableIncome?.toLocaleString('vi-VN') || 0} VND</p>
+                <p>[05] Giảm trừ gia cảnh cho bản thân: ${taxResult.selfDeduction?.toLocaleString('vi-VN') || 0} VND</p>
+                <p>[06] Giảm trừ gia cảnh cho người phụ thuộc: ${taxResult.totalDependentDeduction?.toLocaleString('vi-VN') || 0} VND</p>
+                <p>[07] Giảm trừ bảo hiểm bắt buộc: ${taxResult.totalInsurance?.toLocaleString('vi-VN') || 0} VND</p>
+                <p>[08] Tổng thu nhập tính thuế: ${taxResult.taxableIncome > 0 ? taxResult.taxableIncome.toLocaleString('vi-VN') : 0} VND</p>
+                <p>[09] Tổng thuế TNCN phải nộp: ${taxResult.taxDue?.toLocaleString('vi-VN') || 0} VND</p>
+                <p>[10] Tổng thuế TNCN đã khấu trừ: ${taxResult.totalTaxPaid?.toLocaleString('vi-VN') || 0} VND</p>
+                <p>[11] Số thuế nộp thừa/thiếu: ${taxResult.taxDifference >= 0 ? '+' + taxResult.taxDifference.toLocaleString('vi-VN') : taxResult.taxDifference.toLocaleString('vi-VN')} VND</p>
+                <p class="text-end">Ngày ${new Date().getDate()} tháng ${new Date().getMonth() + 1} năm ${currentYear}</p>
+                <p class="text-end">Người nộp thuế<br><br><br>${fullName}</p>
+            `;
+            document.getElementById('tax-form-content').innerHTML = formContent;
+        }
+
+        function generateTaxTable() {
+            if (!taxResult.taxableIncome) {
+                alert('Vui lòng tính thuế trước khi xem bảng tính!');
+                return;
+            }
+
+            const taxableIncome = taxResult.taxableIncome > 0 ? taxResult.taxableIncome : 0;
+            let remainingIncome = taxableIncome;
+            const taxBrackets = [
+                { threshold: 60_000_000, rate: 0.05 },
+                { threshold: 120_000_000, rate: 0.10 },
+                { threshold: 216_000_000, rate: 0.15 },
+                { threshold: 384_000_000, rate: 0.20 },
+                { threshold: 624_000_000, rate: 0.25 },
+                { threshold: Infinity, rate: 0.35 }
+            ];
+
+            let taxTableRows = '';
+            let totalTax = 0;
+
+            for (let i = 0; i < taxBrackets.length && remainingIncome > 0; i++) {
+                const prevThreshold = i === 0 ? 0 : taxBrackets[i - 1].threshold;
+                const bracketIncome = Math.min(remainingIncome, taxBrackets[i].threshold - prevThreshold);
+                if (bracketIncome > 0) {
+                    const tax = bracketIncome * taxBrackets[i].rate;
+                    totalTax += tax;
+                    taxTableRows += `
+                        <tr>
+                            <td>${(prevThreshold + bracketIncome).toLocaleString('vi-VN')}</td>
+                            <td>${(taxBrackets[i].rate * 100).toFixed(0)}%</td>
+                            <td>${tax.toLocaleString('vi-VN')}</td>
+                        </tr>
+                    `;
+                    remainingIncome -= bracketIncome;
+                }
+            }
+
+            const tableContent = `
+                <p>Thu nhập chịu thuế: ${taxResult.totalTaxableIncome.toLocaleString('vi-VN')}</p>
+                <p>Giảm trừ bản thân: ${taxResult.selfDeduction.toLocaleString('vi-VN')} (11T x 12)</p>
+                <p>Người phụ thuộc: ${taxResult.totalDependentDeduction.toLocaleString('vi-VN')} (4.4tr x ${taxResult.totalDependentDeduction / 4_400_000 / 12} x 12)</p>
+                <p>Trừ BHXH: ${taxResult.totalInsurance.toLocaleString('vi-VN')}</p>
+                <p>Thu nhập tính thuế: ${taxableIncome.toLocaleString('vi-VN')}</p>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Số TN tính thuế</th>
+                            <th>Thuế suất %</th>
+                            <th>Tiền thuế</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${taxTableRows}
+                    </tbody>
+                </table>
+                <p>Tổng thuế TNCN phải nộp: ${taxResult.taxDue.toLocaleString('vi-VN')}</p>
+                <p>Đã khấu trừ (đã nộp): ${taxResult.totalTaxPaid.toLocaleString('vi-VN')}</p>
+                <p>Còn phải nộp trong kỳ: ${taxResult.taxDifference.toLocaleString('vi-VN')}</p>
+            `;
+            document.getElementById('tax-table-content').innerHTML = tableContent;
+        }
+
+        function printTaxForm() {
+            const content = document.getElementById('tax-form-content').innerHTML;
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>In tờ khai thuế TNCN</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th, td { border: 1px solid #ccc; padding: 8px; }
+                        th { background-color: #f1f3f5; }
+                        .text-center { text-align: center; }
+                        .text-end { text-align: right; }
+                    </style>
+                </head>
+                <body onload="window.print();window.close()">${content}</body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    </script>
+</body>
+</html>
