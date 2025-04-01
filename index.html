@@ -153,9 +153,7 @@
                     <h5 class="modal-title" id="taxFormModalLabel">Tờ khai quyết toán thuế TNCN (Mẫu 05/QTT-TNCN)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body tax-form" id="tax-form-content">
-                    <!-- Tờ khai sẽ được generate tại đây -->
-                </div>
+                <div class="modal-body tax-form" id="tax-form-content"></div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary" onclick="printTaxForm()">In tờ khai</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
@@ -172,9 +170,7 @@
                     <h5 class="modal-title" id="taxTableModalLabel">Bảng tính thuế TNCN</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body tax-table" id="tax-table-content">
-                    <!-- Bảng tính sẽ được generate tại đây -->
-                </div>
+                <div class="modal-body tax-table" id="tax-table-content"></div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 </div>
@@ -404,7 +400,8 @@
         
             let taxTableRows = '';
             let totalTax = 0;
-            let accumulatedIncome = 0; // Theo dõi tổng thu nhập đã tính qua các bậc
+            let totalTaxableBracketIncome = 0;
+            let accumulatedIncome = 0;
         
             for (let i = 0; i < taxBrackets.length && remainingIncome > 0; i++) {
                 const prevThreshold = i === 0 ? 0 : taxBrackets[i - 1].threshold;
@@ -412,13 +409,14 @@
                 if (bracketIncome > 0) {
                     const tax = bracketIncome * taxBrackets[i].rate;
                     totalTax += tax;
+                    totalTaxableBracketIncome += bracketIncome;
                     const incomeRangeStart = accumulatedIncome;
                     const incomeRangeEnd = accumulatedIncome + bracketIncome;
                     taxTableRows += `
                         <tr>
                             <td>${taxBrackets[i].range}</td>
+                            <td>${bracketIncome.toLocaleString('vi-VN')} <br /><small>(Phần thu nhập: ${incomeRangeStart.toLocaleString('vi-VN')} - ${incomeRangeEnd.toLocaleString('vi-VN')})</small></td>
                             <td>${(taxBrackets[i].rate * 100).toFixed(0)}%</td>
-                            <td>${bracketIncome.toLocaleString('vi-VN')} <br /><small>(Thu nhập tính thuế: ${incomeRangeStart.toLocaleString('vi-VN')} - ${incomeRangeEnd.toLocaleString('vi-VN')})</small></td>
                             <td>${Math.round(tax).toLocaleString('vi-VN')}</td>
                         </tr>
                     `;
@@ -426,6 +424,14 @@
                     accumulatedIncome += bracketIncome;
                 }
             }
+        
+            taxTableRows += `
+                <tr style="font-weight: bold; background-color: #f1f3f5;">
+                    <td colspan="2">Tổng cộng</td>
+                    <td>${totalTaxableBracketIncome.toLocaleString('vi-VN')}</td>
+                    <td>${Math.round(totalTax).toLocaleString('vi-VN')}</td>
+                </tr>
+            `;
         
             const tableContent = `
                 <p>Thu nhập chịu thuế: ${taxResult.totalTaxableIncome.toLocaleString('vi-VN')}</p>
@@ -436,7 +442,7 @@
                 <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th>Quy định thuế</th>
+                            <th>Quy định Thuế</th>
                             <th>Thuế suất %</th>
                             <th>Số TN tính thuế thực tế</th>
                             <th>Tiền thuế</th>
