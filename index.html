@@ -277,13 +277,12 @@
                 totalTaxPaid += Number(taxPaids[i].value.replace(/\D/g, '')) || 0;
             }
 
-            const selfDeduction = 11_000_000 * 12;
-            const dependentDeduction = 4_400_000;
-            const dependentCounts = document.getElementsByClassName('dependent-count');
+            const selfDeduction = 11_000_000 * 12; // 132 triệu/năm
+            const dependentDeduction = 4_400_000; // 4.4 triệu/tháng/người
             const dependentStarts = document.getElementsByClassName('dependent-start');
             let totalDependentDeduction = 0;
 
-            for (let i = 0; i < dependentCounts.length; i++) {
+            for (let i = 0; i < dependentStarts.length; i++) {
                 const startMonth = Number(dependentStarts[i].value) || 1;
                 const months = (startMonth === 1 || startMonth > 12) ? 12 : 13 - startMonth;
                 totalDependentDeduction += dependentDeduction * months;
@@ -292,14 +291,83 @@
             const totalDeduction = selfDeduction + totalDependentDeduction + totalInsurance;
             const taxableIncome = totalTaxableIncome - totalDeduction;
 
+            // Tính thuế lũy tiến từng phần
             let taxDue = 0;
-            if (taxableIncome > 0) {
-                if (taxableIncome <= 60_000_000) taxDue = taxableIncome * 0.05;
-                else if (taxableIncome <= 120_000_000) taxDue = 3_000_000 + (taxableIncome - 60_000_000) * 0.10;
-                else if (taxableIncome <= 216_000_000) taxDue = 9_000_000 + (taxableIncome - 120_000_000) * 0.15;
-                else if (taxableIncome <= 384_000_000) taxDue = 23_400_000 + (taxableIncome - 216_000_000) * 0.20;
-                else if (taxableIncome <= 624_000_000) taxDue = 57_000_000 + (taxableIncome - 384_000_000) * 0.25;
-                else taxDue = 117_000_000 + (taxableIncome - 624_000_000) * 0.35;
+            let taxDetails = [];
+            let remainingIncome = taxableIncome > 0 ? taxableIncome : 0;
+
+            if (remainingIncome > 0) {
+                // Bậc 1: 0 - 60 triệu (5%)
+                if (remainingIncome <= 60_000_000) {
+                    taxDue = remainingIncome * 0.05;
+                    taxDetails.push({ range: "0 - 60 triệu", income: remainingIncome, rate: "5%", tax: taxDue });
+                    remainingIncome = 0;
+                } else {
+                    taxDue += 60_000_000 * 0.05;
+                    taxDetails.push({ range: "0 - 60 triệu", income: 60_000_000, rate: "5%", tax: 60_000_000 * 0.05 });
+                    remainingIncome -= 60_000_000;
+                }
+
+                // Bậc 2: 60 - 120 triệu (10%)
+                if (remainingIncome > 0 && remainingIncome <= 60_000_000) {
+                    taxDue += remainingIncome * 0.10;
+                    taxDetails.push({ range: "60 - 120 triệu", income: remainingIncome, rate: "10%", tax: remainingIncome * 0.10 });
+                    remainingIncome = 0;
+                } else if (remainingIncome > 0) {
+                    taxDue += 60_000_000 * 0.10;
+                    taxDetails.push({ range: "60 - 120 triệu", income: 60_000_000, rate: "10%", tax: 60_000_000 * 0.10 });
+                    remainingIncome -= 60_000_000;
+                }
+
+                // Bậc 3: 120 - 216 triệu (15%)
+                if (remainingIncome > 0 && remainingIncome <= 96_000_000) {
+                    taxDue += remainingIncome * 0.15;
+                    taxDetails.push({ range: "120 - 216 triệu", income: remainingIncome, rate: "15%", tax: remainingIncome * 0.15 });
+                    remainingIncome = 0;
+                } else if (remainingIncome > 0) {
+                    taxDue += 96_000_000 * 0.15;
+                    taxDetails.push({ range: "120 - 216 triệu", income: 96_000_000, rate: "15%", tax: 96_000_000 * 0.15 });
+                    remainingIncome -= 96_000_000;
+                }
+
+                // Bậc 4: 216 - 384 triệu (20%)
+                if (remainingIncome > 0 && remainingIncome <= 168_000_000) {
+                    taxDue += remainingIncome * 0.20;
+                    taxDetails.push({ range: "216 - 384 triệu", income: remainingIncome, rate: "20%", tax: remainingIncome * 0.20 });
+                    remainingIncome = 0;
+                } else if (remainingIncome > 0) {
+                    taxDue += 168_000_000 * 0.20;
+                    taxDetails.push({ range: "216 - 384 triệu", income: 168_000_000, rate: "20%", tax: 168_000_000 * 0.20 });
+                    remainingIncome -= 168_000_000;
+                }
+
+                // Bậc 5: 384 - 624 triệu (25%)
+                if (remainingIncome > 0 && remainingIncome <= 240_000_000) {
+                    taxDue += remainingIncome * 0.25;
+                    taxDetails.push({ range: "384 - 624 triệu", income: remainingIncome, rate: "25%", tax: remainingIncome * 0.25 });
+                    remainingIncome = 0;
+                } else if (remainingIncome > 0) {
+                    taxDue += 240_000_000 * 0.25;
+                    taxDetails.push({ range: "384 - 624 triệu", income: 240_000_000, rate: "25%", tax: 240_000_000 * 0.25 });
+                    remainingIncome -= 240_000_000;
+                }
+
+                // Bậc 6: 624 - 960 triệu (30%)
+                if (remainingIncome > 0 && remainingIncome <= 336_000_000) {
+                    taxDue += remainingIncome * 0.30;
+                    taxDetails.push({ range: "624 - 960 triệu", income: remainingIncome, rate: "30%", tax: remainingIncome * 0.30 });
+                    remainingIncome = 0;
+                } else if (remainingIncome > 0) {
+                    taxDue += 336_000_000 * 0.30;
+                    taxDetails.push({ range: "624 - 960 triệu", income: 336_000_000, rate: "30%", tax: 336_000_000 * 0.30 });
+                    remainingIncome -= 336_000_000;
+                }
+
+                // Bậc 7: Trên 960 triệu (35%)
+                if (remainingIncome > 0) {
+                    taxDue += remainingIncome * 0.35;
+                    taxDetails.push({ range: "Trên 960 triệu", income: remainingIncome, rate: "35%", tax: remainingIncome * 0.35 });
+                }
             }
 
             const taxDifference = Math.round(taxDue) - totalTaxPaid;
@@ -313,21 +381,48 @@
                 totalDeduction,
                 taxableIncome,
                 taxDue: Math.round(taxDue),
-                taxDifference
+                taxDifference,
+                taxDetails
             };
 
+            // Hiển thị kết quả
             document.getElementById('total-taxable').textContent = totalTaxableIncome.toLocaleString('vi-VN');
             document.getElementById('total-deduction').textContent = totalDeduction.toLocaleString('vi-VN');
             document.getElementById('taxable-income').textContent = taxableIncome > 0 ? taxableIncome.toLocaleString('vi-VN') : 0;
             document.getElementById('tax-due').textContent = Math.round(taxDue).toLocaleString('vi-VN');
             document.getElementById('total-tax-paid').textContent = totalTaxPaid.toLocaleString('vi-VN');
-            const taxDifferenceElement = document.getElementById('tax-difference');
-            if (taxDifference >= 0) {
-                taxDifferenceElement.textContent = `+${taxDifference.toLocaleString('vi-VN')} (Cần nộp thêm)`;
-                taxDifferenceElement.style.color = 'red';
+            document.getElementById('tax-difference').textContent = taxDifference >= 0 
+                ? `+${taxDifference.toLocaleString('vi-VN')} (Cần nộp thêm)` 
+                : `${taxDifference.toLocaleString('vi-VN')} (Được hoàn)`;
+
+            // Hiển thị chi tiết thuế
+            const detailsContainer = document.getElementById('tax-details');
+            if (taxDetails.length > 0) {
+                detailsContainer.innerHTML = `
+                    <h6>Chi tiết tính thuế lũy tiến:</h6>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Bậc thuế</th>
+                                <th>Thu nhập tính thuế (VND)</th>
+                                <th>Thuế suất</th>
+                                <th>Thuế phải nộp (VND)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${taxDetails.map(detail => `
+                                <tr>
+                                    <td>${detail.range}</td>
+                                    <td>${detail.income.toLocaleString('vi-VN')}</td>
+                                    <td>${detail.rate}</td>
+                                    <td>${Math.round(detail.tax).toLocaleString('vi-VN')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
             } else {
-                taxDifferenceElement.textContent = `${taxDifference.toLocaleString('vi-VN')} (Được hoàn)`;
-                taxDifferenceElement.style.color = 'green';
+                detailsContainer.innerHTML = '<p>Không có thu nhập tính thuế.</p>';
             }
         }
 
