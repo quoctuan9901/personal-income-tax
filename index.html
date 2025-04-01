@@ -415,8 +415,8 @@
                     taxTableRows += `
                         <tr>
                             <td>${taxBrackets[i].range}</td>
-                            <td>${bracketIncome.toLocaleString('vi-VN')} <br /><small>(Phần thu nhập: ${incomeRangeStart.toLocaleString('vi-VN')} - ${incomeRangeEnd.toLocaleString('vi-VN')})</small></td>
                             <td>${(taxBrackets[i].rate * 100).toFixed(0)}%</td>
+                            <td>${bracketIncome.toLocaleString('vi-VN')} <br /><small>(Phần thu nhập: ${incomeRangeStart.toLocaleString('vi-VN')} - ${incomeRangeEnd.toLocaleString('vi-VN')})</small></td>
                             <td>${Math.round(tax).toLocaleString('vi-VN')}</td>
                         </tr>
                     `;
@@ -427,7 +427,7 @@
         
             taxTableRows += `
                 <tr style="font-weight: bold; background-color: #f1f3f5;">
-                    <td colspan="2">Tổng cộng</td>
+                    <td colspan="2" class="text-center">Tổng cộng</td>
                     <td>${totalTaxableBracketIncome.toLocaleString('vi-VN')}</td>
                     <td>${Math.round(totalTax).toLocaleString('vi-VN')}</td>
                 </tr>
