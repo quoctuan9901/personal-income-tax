@@ -435,8 +435,8 @@
         
             const tableContent = `
                 <p>Thu nhập chịu thuế: ${taxResult.totalTaxableIncome.toLocaleString('vi-VN')}</p>
-                <p>Giảm trừ bản thân: ${taxResult.selfDeduction.toLocaleString('vi-VN')} (11T x 12)</p>
-                <p>Người phụ thuộc: ${taxResult.totalDependentDeduction.toLocaleString('vi-VN')} (4.4tr x ${taxResult.totalDependentDeduction / 4_400_000 / 12} x 12)</p>
+                <p>Giảm trừ bản thân: ${taxResult.selfDeduction.toLocaleString('vi-VN')} (11 triệu x 12 tháng)</p>
+                <p>Người phụ thuộc: ${taxResult.totalDependentDeduction.toLocaleString('vi-VN')} (4.4 triệu x ${taxResult.totalDependentDeduction / 4_400_000 / 12} x 12 tháng)</p>
                 <p>Trừ BHXH: ${taxResult.totalInsurance.toLocaleString('vi-VN')}</p>
                 <p>Thu nhập tính thuế: ${taxableIncome.toLocaleString('vi-VN')}</p>
                 <table class="table table-bordered">
